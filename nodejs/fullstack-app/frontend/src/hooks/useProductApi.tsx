@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Product, UseProductApi } from "../types/types";
 
@@ -7,7 +7,7 @@ const useProductApi = (apiUrl: string): UseProductApi => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get<Product[]>(`${apiUrl}/products`);
@@ -17,7 +17,7 @@ const useProductApi = (apiUrl: string): UseProductApi => {
       setError(error as Error);
       setLoading(false);
     }
-  };
+  }, [apiUrl]);
 
   const deleteProduct = async (productId: string) => {
     try {
@@ -37,7 +37,7 @@ const useProductApi = (apiUrl: string): UseProductApi => {
     if (apiUrl) {
       fetchProducts();
     }
-  }, [apiUrl]);
+  }, [apiUrl, fetchProducts]);
 
   return { products, loading, error, fetchProducts, deleteProduct };
 };

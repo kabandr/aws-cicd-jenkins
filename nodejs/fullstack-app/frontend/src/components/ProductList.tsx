@@ -10,7 +10,7 @@ function ProductList({ onProductSelect }: ProductListProps) {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
   return (
     <div className="bg-gray-100 py-8">
