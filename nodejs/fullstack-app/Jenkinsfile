@@ -1,0 +1,160 @@
+pipeline {
+    agent any
+
+    environment {
+        PATH = "${tool 'NodeJS'}/bin:${env.PATH}"
+        AWS_REGION = 'aws-region'
+        ECR_REGISTRY = 'ecr-registry-url'
+        FRONTEND_DOCKER_IMAGE = "${ECR_REGISTRY}/frontend:${BUILD_NUMBER}"
+        BACKEND_DOCKER_IMAGE = "${ECR_REGISTRY}/backend:${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Frontend') {
+            steps {
+                dir('frontend') {
+                    script {
+                        sh 'npm install'
+                        sh 'npm run build'
+                    }
+                }
+            }
+        }
+
+        stage('Build Backend') {
+            steps {
+                dir('backend') {
+                    script {
+                        sh 'npm install'
+                    // Additional build steps for the backend if needed
+                    }
+                }
+            }
+        }
+
+        stage('Static Code Analysis') {
+            steps {
+                script {
+                    // Run static code analysis tools for both frontend and backend (e.g., ESLint, SonarQube)
+                    dir('frontend') {
+                        sh 'npm run lint'
+                    }
+                    // For backend
+                    dir('backend') {
+                        sh 'npm run lint'
+                    }
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                script {
+                    dir('frontend') {
+                        sh 'npm test'
+                    }
+                    dir('backend') {
+                        sh 'npm test'
+                    }
+                }
+            }
+        }
+
+        stage('Build and Push Frontend Docker Image') {
+            steps {
+                script {
+                    // Authenticate and push frontend Docker image to ECR
+                    withDockerRegistry(credentialsId: 'ecr-credentials-id', url: "${ECR_REGISTRY}") {
+                        dir('frontend') {
+                            sh "docker build -t ${FRONTEND_DOCKER_IMAGE} ."
+                            sh "docker push ${FRONTEND_DOCKER_IMAGE}"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build and Push Backend Docker Image') {
+            steps {
+                script {
+                    // Authenticate and push backend Docker image to ECR
+                    withDockerRegistry(credentialsId: 'ecr-credentials-id', url: "${ECR_REGISTRY}") {
+                        dir('backend') {
+                            sh "docker build -t ${BACKEND_DOCKER_IMAGE} ."
+                            sh "docker push ${BACKEND_DOCKER_IMAGE}"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Container Security Scanning') {
+            steps {
+                script {
+                    // Install Trivy
+                    sh 'wget https://github.com/aquasecurity/trivy/releases/download/v0.19.2/trivy_0.19.2_Linux-64bit.tar.gz'
+                    sh 'tar zxvf trivy_0.19.2_Linux-64bit.tar.gz'
+
+                    // Scan the frontend Docker image
+                    sh "./trivy --severity HIGH,CRITICAL --exit-code 1 ${FRONTEND_DOCKER_IMAGE}"
+
+                    // Scan the backend Docker image
+                    sh "./trivy --severity HIGH,CRITICAL --exit-code 1 ${BACKEND_DOCKER_IMAGE}"
+                }
+            }
+        }
+
+        stage('Deployment to Staging') {
+            when {
+                expression { currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+            }
+            steps {
+                // Deploy frontend and backend to a staging environment in Kubernetes
+                withKubeConfig(credentialsId: 'kubeconfig-credentials-id', serverUrl: 'kube-server-url') {
+                    sh 'kubectl apply -f k8s/staging-frontend-deployment.yaml'
+                    sh 'kubectl apply -f k8s/staging-backend-deployment.yaml'
+                }
+            }
+        }
+
+        stage('Promotion to Production') {
+            when {
+                expression { currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+            }
+            steps {
+                input 'Deploy to Production?'
+                // Deploy frontend and backend to the production environment in Kubernetes
+                withKubeConfig(credentialsId: 'kubeconfig-credentials-id', serverUrl: 'kube-server-url') {
+                    sh 'kubectl apply -f k8s/production-frontend-deployment.yaml'
+                    sh 'kubectl apply -f k8s/production-backend-deployment.yaml'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Archive build artifacts, generate reports, and clean up
+            archiveArtifacts artifacts: ['frontend/build/**', 'backend/build/**'], allowEmptyArchive: true
+            junit '**/frontend/test-*.xml'
+            junit '**/backend/test-*.xml'
+        }
+
+        success {
+            // Send notifications on success (e.g., Slack, Email)
+            sh 'send-notification.sh "Success: $BUILD_URL"'
+        }
+
+        failure {
+            // Send notifications on failure and rollback if needed
+            sh 'send-notification.sh "Failure: $BUILD_URL"'
+            sh 'rollback.sh'
+        }
+    }
+}
