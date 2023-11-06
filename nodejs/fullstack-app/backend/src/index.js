@@ -1,13 +1,16 @@
 const express = require('express');
+const http = require('http');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const pino = require('pino');
 const pretty = require('pino-pretty');
 const logger = pino(pretty());
+const Product = require('../models/Product');
 require('dotenv').config();
 
 const app = express();
+const server = http.createServer(app);
 const port = process.env.PORT || 3001;
 const dbURI = process.env.MONGO_URI;
 
@@ -23,13 +26,6 @@ const connectToMongoDB = async () => {
 
 app.use(cors());
 app.use(bodyParser.json());
-
-// Define the Product model
-const Product = mongoose.model('Product', {
-  name: String,
-  description: String,
-  price: Number,
-});
 
 // Create a new product
 app.post('/products', async (req, res) => {
@@ -55,7 +51,9 @@ app.get('/products', async (req, res) => {
 // Get a single product by ID
 app.get('/products/:id', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const productId = req.params.id;
+    // console.log('Fetching product with ID:', productId);
+    const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
@@ -93,7 +91,22 @@ app.delete('/products/:id', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+server.listen(port, () => {
   connectToMongoDB();
   logger.info(`Server is running at http://localhost:${port}`);
 });
+
+// Gracefully close the server
+function closeServer() {
+  return new Promise((resolve, reject) => {
+    server.close((err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
+module.exports = { app, server, closeServer };
