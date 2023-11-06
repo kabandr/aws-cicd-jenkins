@@ -1,5 +1,4 @@
 const express = require('express');
-const http = require('http');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -10,11 +9,9 @@ const Product = require('../models/Product');
 require('dotenv').config();
 
 const app = express();
-const server = http.createServer(app);
 const port = process.env.PORT || 3001;
 const dbURI = process.env.MONGO_URI;
 
-// Connect to MongoDB
 const connectToMongoDB = async () => {
   try {
     await mongoose.connect(dbURI);
@@ -27,7 +24,6 @@ const connectToMongoDB = async () => {
 app.use(cors());
 app.use(bodyParser.json());
 
-// Create a new product
 app.post('/products', async (req, res) => {
   try {
     const product = new Product(req.body);
@@ -38,7 +34,6 @@ app.post('/products', async (req, res) => {
   }
 });
 
-// Get all products
 app.get('/products', async (req, res) => {
   try {
     const products = await Product.find();
@@ -48,11 +43,9 @@ app.get('/products', async (req, res) => {
   }
 });
 
-// Get a single product by ID
 app.get('/products/:id', async (req, res) => {
   try {
     const productId = req.params.id;
-    // console.log('Fetching product with ID:', productId);
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
@@ -63,7 +56,6 @@ app.get('/products/:id', async (req, res) => {
   }
 });
 
-// Update a product by ID
 app.put('/products/:id', async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
@@ -78,7 +70,6 @@ app.put('/products/:id', async (req, res) => {
   }
 });
 
-// Delete a product by ID
 app.delete('/products/:id', async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
@@ -91,22 +82,9 @@ app.delete('/products/:id', async (req, res) => {
   }
 });
 
-server.listen(port, () => {
+app.listen(port, () => {
   connectToMongoDB();
   logger.info(`Server is running at http://localhost:${port}`);
 });
 
-// Gracefully close the server
-function closeServer() {
-  return new Promise((resolve, reject) => {
-    server.close((err) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-  });
-}
-
-module.exports = { app, server, closeServer };
+module.exports = { app };
