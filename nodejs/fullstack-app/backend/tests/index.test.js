@@ -11,7 +11,6 @@ const mockProduct = {
 };
 
 describe('API Endpoints', () => {
-  // GET ALL products test
   it('should fetch all products', async () => {
     const mockProducts = [
       { name: 'Product 1', description: 'Description 1', price: 10 },
@@ -19,10 +18,7 @@ describe('API Endpoints', () => {
       { name: 'Product 3', description: 'Description 3', price: 30 },
     ];
 
-    // Set up the mock function
     Product.find.mockResolvedValue(mockProducts);
-
-    // Make a GET request to /products
     const res = await request(app).get('/products');
 
     expect(res.statusCode).toEqual(200);
@@ -30,7 +26,6 @@ describe('API Endpoints', () => {
   });
 
   it('should handle errors', async () => {
-    // Set up the mock function to reject with an error
     Product.find.mockRejectedValue(new Error('Error fetching products'));
 
     const res = await request(app).get('/products');
@@ -39,7 +34,6 @@ describe('API Endpoints', () => {
     expect(res.body).toEqual({ error: 'Error fetching products' });
   });
 
-  // GET SINGLE product by ID
   it('should return a product if it exists', async () => {
     Product.findById.mockResolvedValue(mockProduct);
 
@@ -67,7 +61,6 @@ describe('API Endpoints', () => {
     expect(res.body).toEqual({ error: 'Error fetching product' });
   });
 
-  // UPDATE product by ID test
   it('should update a product if it exists', async () => {
     Product.findByIdAndUpdate.mockResolvedValue(mockProduct);
 
@@ -101,7 +94,6 @@ describe('API Endpoints', () => {
     expect(res.body).toEqual({ error: 'Error updating product' });
   });
 
-  // DELETE product test
   it('should return a 404 status code if the product does not exist', async () => {
     const productId = '12'; // Replace with an ID that does not exist
     const response = await request(app)
