@@ -1,5 +1,5 @@
 pipeline {
-    agent none // Use dynamic agents
+    agent any // Use dynamic agents
 
     parameters {
         string(name: 'AWS_REGION', defaultValue: 'us-west-2', description: 'AWS Region for services')
@@ -176,10 +176,12 @@ pipeline {
 
     post {
         always {
-            // Generate and archive artifacts
-            archiveArtifacts artifacts: 'frontend/build/**,backend/build/**', allowEmptyArchive: true
-            junit '**/test-results/*.xml'
-            cleanWs() // Clean the workspace when the pipeline is finished
+            node("") {
+                // Generate and archive artifacts
+                archiveArtifacts artifacts: 'frontend/build/**,backend/build/**', allowEmptyArchive: true
+                junit '**/test-results/*.xml'
+                cleanWs() // Clean the workspace when the pipeline is finished
+            }
         }
 
         success {
