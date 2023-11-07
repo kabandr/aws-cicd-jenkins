@@ -177,23 +177,27 @@ pipeline {
     post {
         always {
             // Generate and archive artifacts
-            archiveArtifacts artifacts: ['frontend/build/**', 'backend/build/**'], allowEmptyArchive: true
+            archiveArtifacts artifacts: 'frontend/build/**,backend/build/**', allowEmptyArchive: true
             junit '**/test-results/*.xml'
             cleanWs() // Clean the workspace when the pipeline is finished
         }
 
         success {
             script {
-                // Send notifications with more context
-                sh 'send-notification.sh "Success: Build ${env.BUILD_NUMBER} (${env.GIT_COMMIT}) - ${env.BUILD_URL}"'
+                node {
+                    // Send notifications with more context
+                    sh 'send-notification.sh "Success: Build ${env.BUILD_NUMBER} (${env.GIT_COMMIT}) - ${env.BUILD_URL}"'
+                }
             }
         }
 
         failure {
             script {
-                // Send notifications and consider automated rollback if necessary
-                sh 'send-notification.sh "Failure: Build ${env.BUILD_NUMBER} (${env.GIT_COMMIT}) - ${env.BUILD_URL}"'
-                // Rollback command can be here if needed
+                node {
+                    // Send notifications and consider automated rollback if necessary
+                    sh 'send-notification.sh "Failure: Build ${env.BUILD_NUMBER} (${env.GIT_COMMIT}) - ${env.BUILD_URL}"'
+                    // Rollback command can be here if needed
+                }
             }
         }
     }
