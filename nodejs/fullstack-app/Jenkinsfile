@@ -53,40 +53,45 @@ pipeline {
                 stage('Unit Tests') {
                     agent { label 'nodejs' }
                     steps {
-                        parallel {
-                            stage('Frontend Tests') {
-                                dir('frontend') {
-                                    sh 'npm test'
+                        script {
+                            parallel {
+                                stage('Frontend Tests') {
+                                    dir('frontend') {
+                                        sh 'npm test'
                                 }
                             }
-                            stage('Backend Tests') {
-                                dir('backend') {
-                                    sh 'npm test'
+                                stage('Backend Tests') {
+                                    dir('backend') {
+                                        sh 'npm test'
                                 }
                             }
                         }
-                    }
+
+                    }    
                 }
+            }
 
                 stage('Static Code Analysis') {
                     agent { label 'nodejs' }
                     steps {
-                        parallel {
-                            stage('Frontend Lint') {
-                                dir('frontend') {
-                                    sh 'npm run lint'
+                        script {
+                            parallel {
+                                stage('Frontend Lint') {
+                                    dir('frontend') {
+                                        sh 'npm run lint'
+                                        }
+                                    }
+                                stage('Backend Lint') {
+                                    dir('backend') {
+                                        sh 'npm run lint'
+                                        }
+                                    }
                                 }
-                            }
-                            stage('Backend Lint') {
-                                dir('backend') {
-                                    sh 'npm run lint'
-                                }
-                            }
+                            }                      
                         }
                     }
                 }
             }
-        }
 
         stage('Dockerize and Publish') {
             parallel {
