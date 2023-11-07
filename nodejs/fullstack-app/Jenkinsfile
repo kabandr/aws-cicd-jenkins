@@ -28,7 +28,7 @@ pipeline {
         stage('Build and Test') {
             parallel {
                 stage('Build Frontend') {
-                    agent { label 'nodejs' }
+                    agent any
                     steps {
                         dir('frontend') {
                             script {
@@ -40,7 +40,7 @@ pipeline {
                 }
 
                 stage('Build Backend') {
-                    agent { label 'nodejs' }
+                    agent any
                     steps {
                         dir('backend') {
                             script {
@@ -51,7 +51,7 @@ pipeline {
                 }
 
                 stage('Unit Tests') {
-                    agent { label 'nodejs' }
+                    agent any
                     steps {
                         script {
                             parallel {
@@ -72,7 +72,7 @@ pipeline {
             }
 
                 stage('Static Code Analysis') {
-                    agent { label 'nodejs' }
+                    agent any
                     steps {
                         script {
                             parallel {
